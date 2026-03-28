@@ -2,6 +2,8 @@
 
 A Streamlit-based machine learning app that predicts whether a telecom customer is likely to churn. The app trains a `RandomForestClassifier` on a telecom churn dataset, shows model evaluation charts, explores the underlying data, and provides a simple live prediction interface.
 
+Repository: https://github.com/chauhan-03/customer-churn-predictor
+
 ## What The App Does
 
 - Loads a telecom churn dataset from a public CSV URL.
@@ -23,6 +25,11 @@ A Streamlit-based machine learning app that predicts whether a telecom customer 
 - Seaborn
 - scikit-learn
 
+## Python Requirement
+
+- Python 3.12 recommended
+- Python 3.10+ should also work for this project
+
 ## Project Structure
 
 ```text
@@ -37,6 +44,8 @@ customer-churn-predictor/
 Create and activate a virtual environment, then install dependencies:
 
 ```bash
+git clone https://github.com/chauhan-03/customer-churn-predictor.git
+cd customer-churn-predictor
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -175,4 +184,5 @@ scikit-learn
 ## Author
 
 Jatin Chauhan  
+GitHub: https://github.com/chauhan-03  
 LinkedIn: https://www.linkedin.com/in/jatin-chauhan-a07153171/
