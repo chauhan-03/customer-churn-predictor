@@ -29,6 +29,7 @@ Repository: https://github.com/chauhan-03/customer-churn-predictor
 
 - Python 3.12 recommended
 - Python 3.10+ should also work for this project
+- Exact local development interpreter: `3.12.0` in [`.python-version`](./.python-version)
 
 ## Project Structure
 
@@ -173,6 +174,8 @@ seaborn
 scikit-learn
 ```
 
+For an exact snapshot of the local development environment, use [`requirements-lock.txt`](./requirements-lock.txt).
+
 ## Notes And Limitations
 
 - The model is trained at app startup and cached with `@st.cache_data`.
@@ -180,6 +183,7 @@ scikit-learn
 - The app suppresses warnings globally, which keeps the UI cleaner but can hide useful debugging information.
 - The imported `classification_report` metric is currently not displayed in the UI.
 - The live prediction form currently does not fully encode all categorical selections into the model input.
+- The repository tracks environment metadata files, not the `.venv` directory itself.
 
 ## Author
 
