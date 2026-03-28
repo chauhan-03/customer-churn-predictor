@@ -167,7 +167,7 @@ with tab2:
                 plt.close()
 
     with st.expander("📋 Raw Data Sample"):
-        st.dataframe(df.head(20), use_container_width=True)
+        st.dataframe(df.head(20), width="stretch")
 
 # ─── Tab 3: Live Prediction ───────────────────────────────────────────────────
 with tab3:
@@ -181,7 +181,8 @@ with tab3:
         monthly_charges = st.slider("Monthly Charges (₹)", 20, 120, 65)
 
     with col2:
-        total_charges = st.number_input("Total Charges (₹)", 100.0, 8000.0, float(tenure * monthly_charges))
+        default_total_charges = min(8000.0, max(100.0, float(tenure * monthly_charges)))
+        total_charges = st.number_input("Total Charges (₹)", 100.0, 8000.0, default_total_charges)
         senior = st.selectbox("Senior Citizen", [0, 1])
 
     with col3:
