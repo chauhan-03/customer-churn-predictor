@@ -49,14 +49,22 @@ def load_and_train():
 
     # Encode
     df_model = df.copy()
-    le = LabelEncoder()
-    cat_cols = df_model.select_dtypes(include="object").columns.tolist()
-    if "Churn" in cat_cols:
-        cat_cols.remove("Churn")
-        df_model["Churn"] = le.fit_transform(df_model["Churn"].astype(str))
 
+    # FIX #1: keep a separate, dedicated encoder per categorical column
+    # (previously a single `le` was refit in a loop, so only the LAST
+    # column's encoder survived — every other column's mapping was lost
+    # and unavailable later for live prediction)
+    encoders = {}
+
+    target_le = LabelEncoder()
+    if "Churn" in df_model.columns:
+        df_model["Churn"] = target_le.fit_transform(df_model["Churn"].astype(str))
+
+    cat_cols = df_model.select_dtypes(include="object").columns.tolist()
     for col in cat_cols:
-        df_model[col] = le.fit_transform(df_model[col].astype(str))
+        col_le = LabelEncoder()
+        df_model[col] = col_le.fit_transform(df_model[col].astype(str))
+        encoders[col] = col_le  # store this column's own encoder for reuse later
 
     df_model = df_model.apply(pd.to_numeric, errors="coerce").dropna()
 
@@ -73,9 +81,11 @@ def load_and_train():
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    return model, X, y, X_test, y_test, y_pred, y_prob, df
+    # return encoders + the original df's category options so the live
+    # prediction tab can build correct, valid inputs
+    return model, X, y, X_test, y_test, y_pred, y_prob, df, encoders
 
-model, X, y, X_test, y_test, y_pred, y_prob, df = load_and_train()
+model, X, y, X_test, y_test, y_pred, y_prob, df, encoders = load_and_train()
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs(["📊 Model Performance", "🔍 Data Insights", "🎯 Live Prediction"])
@@ -186,21 +196,35 @@ with tab3:
         senior = st.selectbox("Senior Citizen", [0, 1])
 
     with col3:
-        contract = st.selectbox("Contract Type", ["Month-to-month", "One year", "Two year"])
-        internet = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
+        # FIX #2: pull dropdown options straight from the ORIGINAL (unencoded)
+        # data so the labels shown to the user always match what the
+        # stored encoder actually knows how to transform
+        contract_options = sorted(df["Contract"].unique().tolist()) if "Contract" in df.columns else ["Month-to-month", "One year", "Two year"]
+        internet_options = sorted(df["InternetService"].unique().tolist()) if "InternetService" in df.columns else ["DSL", "Fiber optic", "No"]
+        contract = st.selectbox("Contract Type", contract_options)
+        internet = st.selectbox("Internet Service", internet_options)
 
     if st.button("🔮 Predict Churn", type="primary"):
         # Build input using model's feature set
-        input_data = pd.DataFrame(columns=X.columns)
         input_row = {col: 0 for col in X.columns}
 
-        # Map known values
+        # Map known numeric values
         if "tenure" in input_row: input_row["tenure"] = tenure
         if "MonthlyCharges" in input_row: input_row["MonthlyCharges"] = monthly_charges
         if "TotalCharges" in input_row: input_row["TotalCharges"] = total_charges
         if "SeniorCitizen" in input_row: input_row["SeniorCitizen"] = senior
 
-        input_df = pd.DataFrame([input_row])
+        # FIX #3 (the core bug): actually encode the user's Contract and
+        # InternetService selections using the SAME encoders fit during
+        # training, instead of silently leaving them at 0. This was the
+        # train-serve skew — the model was trained on these columns as
+        # real signal, but the live tab never passed real values for them.
+        if "Contract" in input_row and "Contract" in encoders:
+            input_row["Contract"] = encoders["Contract"].transform([contract])[0]
+        if "InternetService" in input_row and "InternetService" in encoders:
+            input_row["InternetService"] = encoders["InternetService"].transform([internet])[0]
+
+        input_df = pd.DataFrame([input_row])[X.columns]  # enforce correct column order
         prob = model.predict_proba(input_df)[0][1]
         prediction = "🚨 Likely to Churn" if prob > 0.5 else "✅ Likely to Stay"
 
